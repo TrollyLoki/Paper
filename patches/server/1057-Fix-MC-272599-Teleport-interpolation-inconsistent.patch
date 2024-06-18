@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: TrollyLoki <trollyloki@gmail.com>
+Date: Tue, 18 Jun 2024 16:55:52 -0400
+Subject: [PATCH] Fix MC-272599 Teleport interpolation inconsistent
+
+Fixes extended display entity teleportation interpolations resetting occasionally by disabling periodic broadcasts of redundant movement/teleportation packets.
+
+See https://bugs.mojang.com/browse/MC-157464
+
+diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
+index a2279262c93408c11f5d2290b48fd794975e8cfe..a4bf4b11d2e3855e5ef81b45b85969a160cd74b6 100644
+--- a/src/main/java/net/minecraft/server/level/ServerEntity.java
++++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
+@@ -167,7 +167,8 @@ public class ServerEntity {
+                 this.sendDirtyEntityData();
+                 this.wasRiding = true;
+             } else {
+-                ++this.teleportDelay;
++                if (!(this.entity instanceof net.minecraft.world.entity.Display)) // Paper - fix MC-272599
++                    ++this.teleportDelay;
+                 i = Mth.floor(this.entity.getYRot() * 256.0F / 360.0F);
+                 j = Mth.floor(this.entity.getXRot() * 256.0F / 360.0F);
+                 Vec3 vec3d = this.entity.trackingPosition();
+@@ -179,7 +180,7 @@ public class ServerEntity {
+                 boolean flag1 = (vec3d_dx * vec3d_dx + vec3d_dy * vec3d_dy + vec3d_dz * vec3d_dz) >= 7.62939453125E-6D;
+                 // Paper end - reduce allocation of Vec3D here
+                 Packet<?> packet1 = null;
+-                boolean flag2 = flag1 || this.tickCount % 60 == 0;
++                boolean flag2 = flag1 || this.tickCount % 60 == 0 && !(this.entity instanceof net.minecraft.world.entity.Display); // Paper - fix MC-272599
+                 boolean flag3 = Math.abs(i - this.yRotp) >= 1 || Math.abs(j - this.xRotp) >= 1;
+                 boolean flag4 = false;
+                 boolean flag5 = false;
