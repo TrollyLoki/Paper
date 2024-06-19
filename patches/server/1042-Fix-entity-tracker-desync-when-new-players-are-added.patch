@@ -20,20 +20,24 @@ Resetting the last sent position every time a new player is
 added to the tracker is just easier to do, so that is what
 this patch does.
 
+Edit: The specific player connections which need to be reset are now stored
+
+Co-authored-by: TrollyLoki <trollyloki@gmail.com>
+
 diff --git a/src/main/java/net/minecraft/server/level/ChunkMap.java b/src/main/java/net/minecraft/server/level/ChunkMap.java
-index dbe9df1e1973db133f7c8516256697ef7c968137..7fb9ba3dadb1eca4a1000ea8cf4d13fed2b7db1e 100644
+index dbe9df1e1973db133f7c8516256697ef7c968137..ee4dac66dff7084ea74fc1035ba887d7d2a11bbb 100644
 --- a/src/main/java/net/minecraft/server/level/ChunkMap.java
 +++ b/src/main/java/net/minecraft/server/level/ChunkMap.java
 @@ -1450,6 +1450,7 @@ public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider
                          this.serverEntity.addPairing(player);
                          }
                          // Paper end - entity tracking events
-+                        this.serverEntity.onPlayerAdd(); // Paper - fix desync when a player is added to the tracker
++                        this.serverEntity.onPlayerAdd(player.connection); // Paper - fix desync when a player is added to the tracker
                      }
                  } else if (this.seenBy.remove(player.connection)) {
                      this.serverEntity.removePairing(player);
 diff --git a/src/main/java/net/minecraft/server/level/ServerEntity.java b/src/main/java/net/minecraft/server/level/ServerEntity.java
-index 4f103f731623a8570238a6867fda1c5f83fca4e4..f16a69775332a08ed0e87d27acd0fc959359694c 100644
+index 4f103f731623a8570238a6867fda1c5f83fca4e4..8a97a59b5414883fbce86f8436dcc12ba7def892 100644
 --- a/src/main/java/net/minecraft/server/level/ServerEntity.java
 +++ b/src/main/java/net/minecraft/server/level/ServerEntity.java
 @@ -97,6 +97,13 @@ public class ServerEntity {
@@ -41,9 +45,9 @@ index 4f103f731623a8570238a6867fda1c5f83fca4e4..f16a69775332a08ed0e87d27acd0fc95
      }
  
 +    // Paper start - fix desync when a player is added to the tracker
-+    private boolean forceStateResync;
-+    public void onPlayerAdd() {
-+        this.forceStateResync = true;
++    private Set<ServerPlayerConnection> forceStateResync = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>();
++    public void onPlayerAdd(ServerPlayerConnection connection) {
++        this.forceStateResync.add(connection);
 +    }
 +    // Paper end - fix desync when a player is added to the tracker
 +
@@ -55,7 +59,7 @@ index 4f103f731623a8570238a6867fda1c5f83fca4e4..f16a69775332a08ed0e87d27acd0fc95
          }
  
 -        if (this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) {
-+        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
++        if (!this.forceStateResync.isEmpty() || this.tickCount % this.updateInterval == 0 || this.entity.hasImpulse || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
              int i;
              int j;
  
@@ -64,14 +68,14 @@ index 4f103f731623a8570238a6867fda1c5f83fca4e4..f16a69775332a08ed0e87d27acd0fc95
                  boolean flag5 = false;
  
 -                if (!(this.entity instanceof net.minecraft.world.entity.decoration.HangingEntity) || this.tickCount > 0 || this.entity instanceof AbstractArrow) { // Paper - Always update position to fix first-tick teleports
-+                if (this.forceStateResync || !(this.entity instanceof net.minecraft.world.entity.decoration.HangingEntity) || this.tickCount > 0 || this.entity instanceof AbstractArrow) { // Paper - Always update position to fix first-tick teleports
++                if (!this.forceStateResync.isEmpty() || !(this.entity instanceof net.minecraft.world.entity.decoration.HangingEntity) || this.tickCount > 0 || this.entity instanceof AbstractArrow) { // Paper - Always update position to fix first-tick teleports
                      long k = this.positionCodec.encodeX(vec3d);
                      long l = this.positionCodec.encodeY(vec3d);
                      long i1 = this.positionCodec.encodeZ(vec3d);
                      boolean flag6 = k < -32768L || k > 32767L || l < -32768L || l > 32767L || i1 < -32768L || i1 > 32767L;
  
 -                    if (!flag6 && this.teleportDelay <= 400 && !this.wasRiding && this.wasOnGround == this.entity.onGround()&& !(io.papermc.paper.configuration.GlobalConfiguration.get().collisions.sendFullPosForHardCollidingEntities && this.entity.hardCollides())) { // Paper - send full pos for hard colliding entities to prevent collision problems due to desync
-+                    if (!this.forceStateResync && !flag6 && this.teleportDelay <= 400 && !this.wasRiding && this.wasOnGround == this.entity.onGround()&& !(io.papermc.paper.configuration.GlobalConfiguration.get().collisions.sendFullPosForHardCollidingEntities && this.entity.hardCollides())) { // Paper - send full pos for hard colliding entities to prevent collision problems due to desync
++                    if (this.forceStateResync.isEmpty() && !flag6 && this.teleportDelay <= 400 && !this.wasRiding && this.wasOnGround == this.entity.onGround()&& !(io.papermc.paper.configuration.GlobalConfiguration.get().collisions.sendFullPosForHardCollidingEntities && this.entity.hardCollides())) { // Paper - send full pos for hard colliding entities to prevent collision problems due to desync
                          if ((!flag2 || !flag3) && !(this.entity instanceof AbstractArrow)) {
                              if (flag2) {
                                  packet1 = new ClientboundMoveEntityPacket.Pos(this.entity.getId(), (short) ((int) k), (short) ((int) l), (short) ((int) i1), this.entity.onGround());
@@ -79,7 +83,7 @@ index 4f103f731623a8570238a6867fda1c5f83fca4e4..f16a69775332a08ed0e87d27acd0fc95
              }
  
              this.entity.hasImpulse = false;
-+            this.forceStateResync = false; // Paper - fix desync when a player is added to the tracker
++            this.forceStateResync.clear(); // Paper - fix desync when a player is added to the tracker
          }
  
          ++this.tickCount;
