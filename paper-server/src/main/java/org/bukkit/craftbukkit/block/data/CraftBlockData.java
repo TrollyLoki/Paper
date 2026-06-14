@@ -19,6 +19,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.ai.attributes.Attribute;
@@ -565,15 +566,28 @@ public class CraftBlockData implements BlockData {
         return this.state.isFaceSturdy(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, CraftBlock.blockFaceToNotch(face), CraftBlockSupport.toMinecraft(support));
     }
 
-    @Override
-    public org.bukkit.util.VoxelShape getCollisionShape(Location location) {
+    private static ServerLevel checkAndGetLevel(Location location) {
         Preconditions.checkArgument(location != null, "location must not be null");
 
         CraftWorld world = (CraftWorld) location.getWorld();
         Preconditions.checkArgument(world != null, "location must not have a null world");
 
+        return world.getHandle();
+    }
+
+    @Override
+    public org.bukkit.util.VoxelShape getShape(Location location) {
+        ServerLevel level = checkAndGetLevel(location);
         BlockPos position = CraftLocation.toBlockPos(location);
-        VoxelShape shape = this.state.getCollisionShape(world.getHandle(), position);
+        VoxelShape shape = this.state.getShape(level, position);
+        return new CraftVoxelShape(shape);
+    }
+
+    @Override
+    public org.bukkit.util.VoxelShape getCollisionShape(Location location) {
+        ServerLevel level = checkAndGetLevel(location);
+        BlockPos position = CraftLocation.toBlockPos(location);
+        VoxelShape shape = this.state.getCollisionShape(level, position);
         return new CraftVoxelShape(shape);
     }
 

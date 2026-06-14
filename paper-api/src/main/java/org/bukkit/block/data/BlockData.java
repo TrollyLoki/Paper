@@ -205,9 +205,20 @@ public interface BlockData extends Cloneable {
      */
     boolean isFaceSturdy(@NotNull BlockFace face, @NotNull BlockSupport support);
 
+    /**
+     * Calculates the shape this block data would have at a particular location.
+     * <p>
+     * This does not take into account any block updates that may occur if the block was to be actually placed in the world.
+     *
+     * @param location the location to calculate the shape at
+     *
+     * @return a {@link org.bukkit.util.VoxelShape} representing the shape of this block data.
+     */
+    @NotNull org.bukkit.util.VoxelShape getShape(@NotNull Location location);
+
     // Paper start
     /**
-     * Calculates the collision shape this block data would have at a particular location.
+     * Calculates the <strong>collision</strong> shape this block data would have at a particular location.
      * <p>
      * This does not take into account any block updates that may occur if the block was to be actually placed in the world.
      *

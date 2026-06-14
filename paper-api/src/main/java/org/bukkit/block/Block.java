@@ -761,7 +761,15 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     BoundingBox getBoundingBox();
 
     /**
-     * Gets the collision shape of this block.
+     * Gets the shape of this block.
+     *
+     * @return a {@link VoxelShape} representing the shape of this block.
+     */
+    @NotNull
+    VoxelShape getShape();
+
+    /**
+     * Gets the <strong>collision</strong> shape of this block.
      *
      * @return a {@link VoxelShape} representing the collision shape of this
      * block.
