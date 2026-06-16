@@ -660,6 +660,12 @@ public class CraftBlock implements Block {
     }
 
     @Override
+    public org.bukkit.util.VoxelShape getFluidShape() {
+        VoxelShape shape = this.getBlockState().getFluidState().getShape(this.level, this.position);
+        return new CraftVoxelShape(shape);
+    }
+
+    @Override
     public org.bukkit.util.VoxelShape getCollisionShape() {
         VoxelShape shape = this.getBlockState().getCollisionShape(this.level, this.position);
         return new CraftVoxelShape(shape);

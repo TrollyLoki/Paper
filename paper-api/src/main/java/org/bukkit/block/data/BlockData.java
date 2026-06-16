@@ -216,6 +216,17 @@ public interface BlockData extends Cloneable {
      */
     @NotNull org.bukkit.util.VoxelShape getShape(@NotNull Location location);
 
+    /**
+     * Calculates the shape the <strong>fluid</strong> within this block data would have at a particular location.
+     * <p>
+     * This does not take into account any block updates that may occur if the block was to be actually placed in the world.
+     *
+     * @param location the location to calculate the fluid shape at
+     *
+     * @return a {@link org.bukkit.util.VoxelShape} representing the shape of the fluid within this block data.
+     */
+    @NotNull org.bukkit.util.VoxelShape getFluidShape(@NotNull Location location);
+
     // Paper start
     /**
      * Calculates the <strong>collision</strong> shape this block data would have at a particular location.

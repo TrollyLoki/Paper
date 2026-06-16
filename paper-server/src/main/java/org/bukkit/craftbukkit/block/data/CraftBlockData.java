@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
@@ -566,29 +567,30 @@ public class CraftBlockData implements BlockData {
         return this.state.isFaceSturdy(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, CraftBlock.blockFaceToNotch(face), CraftBlockSupport.toMinecraft(support));
     }
 
-    private static ServerLevel checkAndGetLevel(Location location) {
+    private static org.bukkit.util.VoxelShape getShapeHelper(BiFunction<ServerLevel, BlockPos, VoxelShape> getter, Location location) {
         Preconditions.checkArgument(location != null, "location must not be null");
 
         CraftWorld world = (CraftWorld) location.getWorld();
-        Preconditions.checkArgument(world != null, "location must not have a null world");
+        Preconditions.checkArgument(world != null, "location must have a world");
 
-        return world.getHandle();
+        ServerLevel level = world.getHandle();
+        BlockPos position = CraftLocation.toBlockPos(location);
+        return new CraftVoxelShape(getter.apply(level, position));
     }
 
     @Override
     public org.bukkit.util.VoxelShape getShape(Location location) {
-        ServerLevel level = checkAndGetLevel(location);
-        BlockPos position = CraftLocation.toBlockPos(location);
-        VoxelShape shape = this.state.getShape(level, position);
-        return new CraftVoxelShape(shape);
+        return getShapeHelper(this.state::getShape, location);
+    }
+
+    @Override
+    public org.bukkit.util.VoxelShape getFluidShape(Location location) {
+        return getShapeHelper(this.state.getFluidState()::getShape, location);
     }
 
     @Override
     public org.bukkit.util.VoxelShape getCollisionShape(Location location) {
-        ServerLevel level = checkAndGetLevel(location);
-        BlockPos position = CraftLocation.toBlockPos(location);
-        VoxelShape shape = this.state.getCollisionShape(level, position);
-        return new CraftVoxelShape(shape);
+        return getShapeHelper(this.state::getCollisionShape, location);
     }
 
     @Override

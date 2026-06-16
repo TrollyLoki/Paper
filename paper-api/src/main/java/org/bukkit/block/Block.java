@@ -769,6 +769,14 @@ public interface Block extends Metadatable, Translatable, net.kyori.adventure.tr
     VoxelShape getShape();
 
     /**
+     * Gets the shape of the <strong>fluid</strong> within this block.
+     *
+     * @return a {@link VoxelShape} representing the shape of the fluid within this block.
+     */
+    @NotNull
+    VoxelShape getFluidShape();
+
+    /**
      * Gets the <strong>collision</strong> shape of this block.
      *
      * @return a {@link VoxelShape} representing the collision shape of this
